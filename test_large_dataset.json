@@ -1,0 +1,52 @@
+[
+  {
+    "id": "trans_1",
+    "accountId": "acc_123",
+    "description": "STARBUCKS COFFEE #1234",
+    "category": "Food & Dining",
+    "amount": 4.75,
+    "date": "2024-01-15",
+    "type": "debit",
+    "merchant": "Starbucks"
+  },
+  {
+    "id": "trans_2",
+    "accountId": "acc_123",
+    "description": "GROCERY STORE PURCHASE",
+    "category": "Groceries",
+    "amount": 87.23,
+    "date": "2024-01-14",
+    "type": "debit",
+    "merchant": "Walmart"
+  },
+  {
+    "id": "trans_3",
+    "accountId": "acc_123",
+    "description": "GAS STATION FILL UP",
+    "category": "Transportation",
+    "amount": 45.67,
+    "date": "2024-01-13",
+    "type": "debit",
+    "merchant": "Shell"
+  },
+  {
+    "id": "trans_4",
+    "accountId": "acc_123",
+    "description": "RESTAURANT DINNER",
+    "category": "Food & Dining",
+    "amount": 32.89,
+    "date": "2024-01-12",
+    "type": "debit",
+    "merchant": "Local Restaurant"
+  },
+  {
+    "id": "trans_5",
+    "accountId": "acc_123",
+    "description": "ONLINE SHOPPING",
+    "category": "Shopping",
+    "amount": 156.78,
+    "date": "2024-01-11",
+    "type": "debit",
+    "merchant": "Amazon"
+  }
+]

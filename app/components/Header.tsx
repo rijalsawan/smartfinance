@@ -1,14 +1,47 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Bell, Settings, Search, User, Menu } from 'lucide-react';
+import { Bell, Settings, Search, User, Menu, Command } from 'lucide-react';
 import { Button } from './ui/Button';
+import { GlobalSearch } from './GlobalSearch';
+import { type BankAccount, type Transaction } from '../services/plaidService';
 
 interface HeaderProps {
   title?: string;
   onMenuClick?: () => void;
+  onNavigate?: (page: string) => void;
+  onOpenModal?: (modalType: string) => void;
+  accounts?: BankAccount[];
+  transactions?: Transaction[];
 }
 
-export const Header: React.FC<HeaderProps> = ({ title = "Smart Finance", onMenuClick }) => {
+export const Header: React.FC<HeaderProps> = ({ 
+  title = "Smart Finance", 
+  onMenuClick, 
+  onNavigate, 
+  onOpenModal,
+  accounts = [],
+  transactions = [],
+}) => {
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Handle keyboard shortcut for search
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleNavigate = (page: string) => {
+    if (onNavigate) {
+      onNavigate(page);
+    }
+  };
   return (
     <motion.header
       initial={{ opacity: 0, y: -20 }}
@@ -40,31 +73,62 @@ export const Header: React.FC<HeaderProps> = ({ title = "Smart Finance", onMenuC
           </motion.div>
         </div>
 
-        {/* Search Bar - Hidden on small screens */}
+        {/* Search Bar - Hidden on small screens, clickable to open global search */}
         <div className="hidden md:flex items-center flex-1 max-w-md mx-4 lg:mx-8">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-4 h-4 sm:w-5 sm:h-5" />
-            <input
-              type="text"
-              placeholder="Search transactions, insights..."
-              className="w-full pl-8 sm:pl-10 pr-4 py-2 sm:py-2.5 text-sm sm:text-base border border-neutral-300 dark:border-neutral-600 rounded-xl bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-300"
-            />
-          </div>
+          <button
+            onClick={() => setIsSearchOpen(true)}
+            className="relative w-full group"
+          >
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-4 h-4 sm:w-5 sm:h-5 group-hover:text-neutral-500 transition-colors" />
+            <div className="w-full pl-8 sm:pl-10 pr-12 py-2 sm:py-2.5 text-sm sm:text-base border border-neutral-300 dark:border-neutral-600 rounded-xl bg-neutral-50 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-all duration-300 text-left">
+              Search transactions, insights...
+            </div>
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-1">
+              <kbd className="hidden lg:inline-block px-2 py-1 text-xs bg-white dark:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 rounded shadow-sm text-neutral-500 dark:text-neutral-400">
+                ⌘K
+              </kbd>
+            </div>
+          </button>
         </div>
 
-        {/* Actions - Responsive */}
-        <div className="flex items-center space-x-1 sm:space-x-2 lg:space-x-3">
+        {/* Right Section */}
+        <div className="flex items-center space-x-2 sm:space-x-3">
+          {/* Mobile Search Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsSearchOpen(true)}
+            className="md:hidden p-2"
+          >
+            <Search className="w-4 h-4 sm:w-5 sm:h-5" />
+          </Button>
+
+          {/* Notifications */}
           <Button variant="ghost" size="sm" className="p-2">
             <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
           </Button>
+          
+          {/* Settings - Hidden on mobile */}
           <Button variant="ghost" size="sm" className="hidden sm:flex p-2">
             <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
           </Button>
+          
+          {/* User Profile */}
           <Button variant="ghost" size="sm" className="p-2">
             <User className="w-4 h-4 sm:w-5 sm:h-5" />
           </Button>
         </div>
       </div>
+
+      {/* Global Search Modal */}
+      <GlobalSearch
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        onNavigate={handleNavigate}
+        onOpenModal={onOpenModal}
+        accounts={accounts}
+        transactions={transactions}
+      />
     </motion.header>
   );
 };

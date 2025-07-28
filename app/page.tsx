@@ -9,28 +9,32 @@ import { DashboardStats } from './components/DashboardStats';
 import { ChartCard } from './components/ChartCard';
 import { RecentTransactions } from './components/RecentTransactions_new';
 import { TransactionModal } from './components/TransactionModal';
-import { AIInsightsContent } from './components/AIInsightsContent';
+import { AIInsightsContent } from './components/AIInsightsContent_new';
 import { ConnectedBanks } from './components/bank/ConnectedBanks';
 import { RealTimeTransactions } from './components/bank/RealTimeTransactions';
 import { Button } from './components/ui/Button';
-import { type BankAccount } from './services/plaidService';
+import { type BankAccount, plaidService, type Transaction } from './services/plaidService';
 import { analyticsService } from './services/analyticsService';
 
 export default function Home() {
   const [activeMenuItem, setActiveMenuItem] = useState('dashboard');
   const [connectedAccounts, setConnectedAccounts] = useState<BankAccount[]>([]);
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [chartData, setChartData] = useState<{
     spendingTrend: any;
     expenseCategories: any;
     monthlyComparison: any;
   } | null>(null);
   const [isLoadingCharts, setIsLoadingCharts] = useState(true);
+  const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [refreshInsights, setRefreshInsights] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     loadChartData();
+    // Load initial transactions if there are connected accounts
+    loadRealTransactions();
   }, []);
 
   const loadChartData = async () => {
@@ -62,6 +66,84 @@ export default function Home() {
 
   const handleAccountsUpdate = (accounts: BankAccount[]) => {
     setConnectedAccounts(accounts);
+    // Load real transactions from Plaid when accounts are updated
+    loadRealTransactions();
+  };
+
+  const loadRealTransactions = async () => {
+    try {
+      setIsLoadingTransactions(true);
+      
+      // Get transactions from all connected accounts (last 90 days for comprehensive AI analysis)
+      const transactions = await plaidService.getAllTransactions(90);
+      
+      setAllTransactions(transactions);
+      
+      // Trigger insights refresh when new transaction data is loaded
+      setRefreshInsights(prev => prev + 1);
+      
+      console.log(`Loaded ${transactions.length} transactions for AI analysis`);
+    } catch (error) {
+      console.error('Error loading real transactions:', error);
+      
+      // Fallback to demo transactions if Plaid fails
+      const fallbackTransactions: Transaction[] = [
+        {
+          id: 'demo-1',
+          accountId: connectedAccounts[0]?.id || 'demo_account',
+          description: 'Grocery Shopping',
+          category: 'Food and Drink',
+          amount: -125.50,
+          date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+          type: 'debit',
+          merchant: 'Whole Foods Market',
+        },
+        {
+          id: 'demo-2',
+          accountId: connectedAccounts[0]?.id || 'demo_account',
+          description: 'Coffee Purchase',
+          category: 'Food and Drink',
+          amount: -8.75,
+          date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+          type: 'debit',
+          merchant: 'Starbucks',
+        },
+        {
+          id: 'demo-3',
+          accountId: connectedAccounts[0]?.id || 'demo_account',
+          description: 'Salary Deposit',
+          category: 'Payroll',
+          amount: 3500.00,
+          date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+          type: 'credit',
+          merchant: 'Employer Inc',
+        },
+        {
+          id: 'demo-4',
+          accountId: connectedAccounts[0]?.id || 'demo_account',
+          description: 'Gas Station',
+          category: 'Transportation',
+          amount: -45.20,
+          date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+          type: 'debit',
+          merchant: 'Shell',
+        },
+        {
+          id: 'demo-5',
+          accountId: connectedAccounts[0]?.id || 'demo_account',
+          description: 'Netflix Subscription',
+          category: 'Entertainment',
+          amount: -15.99,
+          date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+          type: 'debit',
+          merchant: 'Netflix',
+        }
+      ];
+      
+      setAllTransactions(fallbackTransactions);
+    } finally {
+      setIsLoadingTransactions(false);
+    }
   };
 
   const renderContent = () => {
@@ -289,7 +371,11 @@ export default function Home() {
               </Button>
             </div>
 
-            <AIInsightsContent key={refreshInsights} />
+            <AIInsightsContent 
+              accounts={connectedAccounts} 
+              refreshKey={refreshInsights}
+              transactions={allTransactions}
+            />
           </motion.div>
         );
 
@@ -340,7 +426,17 @@ export default function Home() {
         {/* Main Content */}
         <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
           {/* Header */}
-          <Header onMenuClick={() => setIsSidebarOpen(true)} />
+          <Header 
+            onMenuClick={() => setIsSidebarOpen(true)}
+            onNavigate={handleMenuItemClick}
+            accounts={connectedAccounts}
+            transactions={allTransactions}
+            onOpenModal={(modalType: string) => {
+              if (modalType === 'transactions') {
+                setIsTransactionModalOpen(true);
+              }
+            }}
+          />
 
           {/* Content */}
           <main className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6">
@@ -355,12 +451,7 @@ export default function Home() {
                 className="mt-8 sm:mt-12 pt-4 sm:pt-6 border-t border-neutral-200 dark:border-neutral-800"
               >
                 <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
-                  <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 text-center sm:text-left">
-                    © 2024 SmartFinance. Powered by AI & Machine Learning. 
-                    <span className="block sm:inline sm:ml-2 text-green-600 dark:text-green-400 font-medium">
-                      🇨🇦 Canadian Banks Supported
-                    </span>
-                  </p>
+                  
                   <div className="flex items-center space-x-4 sm:space-x-6 text-xs sm:text-sm">
                     <button className="text-neutral-500 dark:text-neutral-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                       Privacy

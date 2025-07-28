@@ -16,6 +16,7 @@ import {
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { plaidService, type Transaction } from '../services/plaidService';
+import { analyticsService, type SpendingCategory } from '../services/analyticsService';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -37,10 +38,13 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const [sortBy, setSortBy] = useState<'date' | 'amount' | 'description'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showFilters, setShowFilters] = useState(false);
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+  const [spendingCategories, setSpendingCategories] = useState<SpendingCategory[]>([]);
 
+  // Dynamic categories from analytics service (same as dashboard)
   const categories = [
-    'all', 'food', 'transportation', 'shopping', 'entertainment', 
-    'bills', 'healthcare', 'education', 'travel', 'other'
+    'all',
+    ...availableCategories
   ];
 
   useEffect(() => {
@@ -58,14 +62,32 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setLoading(true);
       if (accounts.length === 0) {
         setTransactions([]);
+        setAvailableCategories([]);
         return;
       }
 
       const allTransactions = await plaidService.getAllTransactions(90); // Get last 3 months
       setTransactions(allTransactions);
+      
+      // Load spending categories from analytics service (same as dashboard)
+      const categories = await analyticsService.getSpendingCategories();
+      if (categories && categories.length > 0) {
+        setSpendingCategories(categories);
+        setAvailableCategories(categories.map(cat => cat.category));
+      } else {
+        // Fallback to extracting unique categories from transactions
+        const fallbackCategories = Array.from(new Set(
+          allTransactions
+            .map(txn => txn.category)
+            .filter(category => category && category !== 'Other')
+        )).sort();
+        
+        setAvailableCategories(fallbackCategories);
+      }
     } catch (error) {
       console.error('Error loading transactions:', error);
       setTransactions([]);
+      setAvailableCategories([]);
     } finally {
       setLoading(false);
     }

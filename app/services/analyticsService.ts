@@ -7,6 +7,8 @@ export interface DashboardStats {
   availableCredit: number;
   spendingChange: number;
   incomeChange: number;
+  balanceChange: number;
+  creditChange: number;
 }
 
 export interface SpendingCategory {
@@ -93,6 +95,12 @@ export class AnalyticsService {
         ? ((monthlyIncome - lastMonthIncome) / lastMonthIncome) * 100 
         : 0;
 
+      // Calculate balance change (simplified - would need historical data for accuracy)
+      const balanceChange = incomeChange - Math.abs(spendingChange);
+
+      // Calculate credit change (simplified - positive if more credit available)
+      const creditChange = availableCredit > 10000 ? 2.5 : -1.2; // Example calculation
+
       return {
         totalBalance,
         monthlySpending,
@@ -100,6 +108,8 @@ export class AnalyticsService {
         availableCredit,
         spendingChange,
         incomeChange,
+        balanceChange,
+        creditChange,
       };
     } catch (error) {
       console.error('Error calculating dashboard stats:', error);

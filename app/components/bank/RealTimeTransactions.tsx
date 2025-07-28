@@ -17,6 +17,7 @@ import {
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { plaidService, type Transaction, type BankAccount } from '../../services/plaidService';
+import { analyticsService, type SpendingCategory } from '../../services/analyticsService';
 import { format, parseISO, isToday, isYesterday, subDays } from 'date-fns';
 
 interface RealTimeTransactionsProps {
@@ -24,7 +25,7 @@ interface RealTimeTransactionsProps {
 }
 
 type FilterType = 'all' | 'income' | 'expenses' | 'today' | 'week' | 'month';
-type CategoryFilter = 'all' | 'groceries' | 'gas' | 'dining' | 'housing' | 'utilities' | 'income';
+type CategoryFilter = 'all' | string;
 
 export const RealTimeTransactions: React.FC<RealTimeTransactionsProps> = ({ accounts }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -34,6 +35,8 @@ export const RealTimeTransactions: React.FC<RealTimeTransactionsProps> = ({ acco
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+  const [spendingCategories, setSpendingCategories] = useState<SpendingCategory[]>([]);
 
   // Load transactions when accounts change
   useEffect(() => {
@@ -60,6 +63,22 @@ export const RealTimeTransactions: React.FC<RealTimeTransactionsProps> = ({ acco
       // Sort by date (most recent first)
       allTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setTransactions(allTransactions);
+      
+      // Load spending categories from analytics service (same as dashboard)
+      const categories = await analyticsService.getSpendingCategories();
+      if (categories && categories.length > 0) {
+        setSpendingCategories(categories);
+        setAvailableCategories(categories.map(cat => cat.category));
+      } else {
+        // Fallback to extracting unique categories from transactions
+        const fallbackCategories = Array.from(new Set(
+          allTransactions
+            .map(txn => txn.category)
+            .filter(category => category && category !== 'Other')
+        )).sort();
+        
+        setAvailableCategories(fallbackCategories);
+      }
     } catch (error) {
       console.error('Error loading transactions:', error);
     } finally {
@@ -103,13 +122,10 @@ export const RealTimeTransactions: React.FC<RealTimeTransactionsProps> = ({ acco
 
     // Category filter
     if (categoryFilter !== 'all') {
-      filtered = filtered.filter(txn => 
-        txn.category.toLowerCase().includes(categoryFilter.toLowerCase()) ||
-        (categoryFilter === 'dining' && txn.category.toLowerCase().includes('food'))
+      filtered = filtered.filter(txn =>
+        txn.category.toLowerCase().includes(categoryFilter.toLowerCase())
       );
-    }
-
-    setFilteredTransactions(filtered);
+    }    setFilteredTransactions(filtered);
   };
 
   const getTransactionIcon = (transaction: Transaction) => {
@@ -192,14 +208,26 @@ export const RealTimeTransactions: React.FC<RealTimeTransactionsProps> = ({ acco
     { key: 'month', label: 'This Month' },
   ];
 
+  // Generate dynamic categories list from analytics service (same as dashboard)
   const categories: { key: CategoryFilter; label: string }[] = [
     { key: 'all', label: 'All Categories' },
-    { key: 'groceries', label: 'Groceries' },
-    { key: 'gas', label: 'Gas & Fuel' },
-    { key: 'dining', label: 'Dining' },
-    { key: 'housing', label: 'Housing' },
-    { key: 'utilities', label: 'Utilities' },
-    { key: 'income', label: 'Income' },
+    ...availableCategories.map(category => ({
+      key: category,
+      label: category
+    }))
+  ];
+
+  // Add spending amounts to category labels if available
+  const categoriesWithAmounts: { key: CategoryFilter; label: string }[] = [
+    { key: 'all', label: 'All Categories' },
+    ...availableCategories.map(category => {
+      const spendingData = spendingCategories.find(cat => cat.category === category);
+      const amountLabel = spendingData ? ` ($${spendingData.amount.toFixed(0)})` : '';
+      return {
+        key: category,
+        label: `${category}${amountLabel}`
+      };
+    })
   ];
 
   return (
@@ -294,7 +322,7 @@ export const RealTimeTransactions: React.FC<RealTimeTransactionsProps> = ({ acco
                     Category
                   </label>
                   <div className="flex flex-wrap gap-2">
-                    {categories.map((category) => (
+                    {categoriesWithAmounts.map((category) => (
                       <button
                         key={category.key}
                         onClick={() => setCategoryFilter(category.key)}

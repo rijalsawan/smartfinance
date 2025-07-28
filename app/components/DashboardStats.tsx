@@ -158,8 +158,8 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ onStatsUpdate })
     {
       title: 'Total Balance',
       value: formatCurrency(statsData.totalBalance),
-      change: formatPercentage(statsData.incomeChange),
-      isPositive: statsData.incomeChange >= 0,
+      change: formatPercentage(statsData.balanceChange || 0),
+      isPositive: (statsData.balanceChange || 0) >= 0,
       icon: <DollarSign className="w-full h-full" />,
     },
     {
@@ -179,8 +179,8 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ onStatsUpdate })
     {
       title: 'Available Credit',
       value: formatCurrency(statsData.availableCredit),
-      change: '+5.2%', // This would need additional calculation for credit utilization change
-      isPositive: true,
+      change: formatPercentage(statsData.creditChange || 0),
+      isPositive: (statsData.creditChange || 0) >= 0,
       icon: <CreditCard className="w-full h-full" />,
     },
   ];

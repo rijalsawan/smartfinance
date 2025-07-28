@@ -277,26 +277,41 @@ export class PlaidService {
       const data = await response.json();
       
       // Transform Plaid transaction data to our Transaction interface
-      const transactions: Transaction[] = data.transactions.map((transaction: any) => ({
-        id: transaction.transaction_id,
-        accountId: transaction.account_id,
-        amount: -transaction.amount, // Plaid uses positive for debits, we use negative
-        description: transaction.name,
-        category: transaction.category?.[0] || 'Other',
-        subcategory: transaction.category?.[1],
-        date: transaction.date,
-        type: transaction.amount > 0 ? 'debit' : 'credit',
-        merchant: transaction.merchant_name,
-        location: transaction.location ? {
-          address: transaction.location.address,
-          city: transaction.location.city,
-          region: transaction.location.region,
-          postalCode: transaction.location.postal_code,
-          country: transaction.location.country,
-        } : undefined,
-        isRecurring: false, // Would need additional logic to determine
-        confidence: 1.0,
-      }));
+      const transactions: Transaction[] = data.transactions.map((transaction: any) => {
+        // Normalize category handling from Plaid
+        let category = 'Other';
+        let subcategory = undefined;
+        
+        if (transaction.category && Array.isArray(transaction.category) && transaction.category.length > 0) {
+          category = transaction.category[0] || 'Other';
+          subcategory = transaction.category[1];
+        } else if (transaction.personal_finance_category?.primary) {
+          // Use the newer personal finance category if available
+          category = transaction.personal_finance_category.primary;
+          subcategory = transaction.personal_finance_category.detailed;
+        }
+
+        return {
+          id: transaction.transaction_id,
+          accountId: transaction.account_id,
+          amount: -transaction.amount, // Plaid uses positive for debits, we use negative
+          description: transaction.name || 'Unknown Transaction',
+          category,
+          subcategory,
+          date: transaction.date,
+          type: transaction.amount > 0 ? 'debit' : 'credit',
+          merchant: transaction.merchant_name || transaction.account_owner || undefined,
+          location: transaction.location ? {
+            address: transaction.location.address,
+            city: transaction.location.city,
+            region: transaction.location.region,
+            postalCode: transaction.location.postal_code,
+            country: transaction.location.country,
+          } : undefined,
+          isRecurring: false, // Would need additional logic to determine
+          confidence: 1.0,
+        };
+      });
 
       return transactions;
     } catch (error) {

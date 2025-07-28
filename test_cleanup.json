@@ -1,0 +1,12 @@
+[
+  {
+    "id": "test_1",
+    "accountId": "test_account",
+    "description": "Test Transaction",
+    "category": "Food and Drink",
+    "amount": -45.67,
+    "date": "2024-12-15",
+    "type": "debit",
+    "merchant": "Test Restaurant"
+  }
+]

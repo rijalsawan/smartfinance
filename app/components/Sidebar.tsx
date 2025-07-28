@@ -56,17 +56,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       }`}
     >
       {/* Collapse Toggle */}
-      <div className="flex justify-end p-4">
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-        >
-          {isCollapsed ? (
-            <ChevronRight className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
-          ) : (
-            <ChevronLeft className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
-          )}
-        </button>
+      <div className="flex  justify-end p-4">
+        
       </div>
 
       {/* Navigation */}
@@ -91,7 +82,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800'
                   }`}
                 >
-                  <Icon className={`w-5 h-5 ${isCollapsed ? 'mx-auto' : 'mr-3'}`} />
+                  <Icon className={`${isCollapsed ? 'w-6 h-6 mx-auto' : 'w-5 h-5 mr-3'}`} />
                   {!isCollapsed && (
                     <>
                       <span className="font-medium">{item.label}</span>
@@ -127,7 +118,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onClick={() => handleItemClick(item.id)}
                   className={`w-full flex items-center px-3 py-3 rounded-xl transition-all duration-300 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800`}
                 >
-                  <Icon className={`w-5 h-5 ${isCollapsed ? 'mx-auto' : 'mr-3'}`} />
+                  <Icon className={`${isCollapsed ? 'w-6 h-6 mx-auto' : 'w-5 h-5 mr-3'}`} />
                   {!isCollapsed && <span className="font-medium">{item.label}</span>}
                 </button>
               </li>
